@@ -38,6 +38,7 @@ See [docs/architecture.md](docs/architecture.md) for more detail.
 go run ./cmd/bmcli --help
 go run ./cmd/bmcli help
 go run ./cmd/bmcli version
+go run ./cmd/bmcli version --json
 ```
 
 Build a local binary:
