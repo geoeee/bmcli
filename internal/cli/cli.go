@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 )
@@ -16,6 +17,8 @@ var (
 )
 
 func Run(args []string, stdout io.Writer, stderr io.Writer) int {
+	args, jsonOutput := parseGlobalFlags(args)
+
 	if len(args) == 0 {
 		printHelp(stdout)
 		return 0
@@ -26,6 +29,13 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 		printHelp(stdout)
 		return 0
 	case "version", "-v", "--version":
+		if jsonOutput {
+			if err := printVersionJSON(stdout); err != nil {
+				fmt.Fprintf(stderr, "%s: failed to write JSON output: %v\n", appName, err)
+				return 1
+			}
+			return 0
+		}
 		fmt.Fprintf(stdout, "%s %s\n", appName, versionString())
 		return 0
 	default:
@@ -33,6 +43,30 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 		printHelp(stderr)
 		return 1
 	}
+}
+
+func parseGlobalFlags(args []string) ([]string, bool) {
+	remaining := make([]string, 0, len(args))
+	jsonOutput := false
+
+	for _, arg := range args {
+		if arg == "--json" {
+			jsonOutput = true
+			continue
+		}
+		remaining = append(remaining, arg)
+	}
+
+	return remaining, jsonOutput
+}
+
+func printVersionJSON(w io.Writer) error {
+	return json.NewEncoder(w).Encode(versionOutput{
+		Name:    appName,
+		Version: effectiveVersion(),
+		Commit:  Commit,
+		Date:    Date,
+	})
 }
 
 func printHelp(w io.Writer) {
@@ -47,15 +81,13 @@ Available Commands:
 
 Flags:
   -h, --help      Show help
+      --json      Output supported commands as JSON
   -v, --version   Print the %s version
 `, appName, appName, appName, appName, appName)
 }
 
 func versionString() string {
-	version := Version
-	if version == "" {
-		version = "dev"
-	}
+	version := effectiveVersion()
 
 	if Commit != "" {
 		version += " (" + Commit
@@ -68,4 +100,18 @@ func versionString() string {
 	}
 
 	return version
+}
+
+func effectiveVersion() string {
+	if Version == "" {
+		return "dev"
+	}
+	return Version
+}
+
+type versionOutput struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Commit  string `json:"commit,omitempty"`
+	Date    string `json:"date,omitempty"`
 }
