@@ -3,6 +3,31 @@
 `bmcli` is the Bastion Management CLI. This repository currently contains the
 initial Go command skeleton with help and version commands.
 
+## Architecture
+
+`bmcli` is organized as a small Go command line application. The executable
+entrypoint in `cmd/bmcli` delegates command handling to the reusable CLI package
+in `internal/cli`, which writes user-facing output to the provided streams and
+returns an exit code to the operating system.
+
+```mermaid
+flowchart TD
+    user[User shell] --> binary[bmcli executable]
+    binary --> main[cmd/bmcli main]
+    main --> run[internal/cli Run]
+    run --> dispatch{Command}
+    dispatch -->|help, -h, --help, no args| help[Print help text]
+    dispatch -->|version, -v, --version| version[Print version metadata]
+    dispatch -->|unknown command| error[Print error and help]
+    help --> stdout[stdout]
+    version --> stdout
+    error --> stderr[stderr]
+    run --> exit[Exit code]
+    exit --> os[Operating system]
+```
+
+See [docs/architecture.md](docs/architecture.md) for more detail.
+
 ## Prerequisites
 
 - Go 1.22 or newer
