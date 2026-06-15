@@ -1,7 +1,7 @@
 # bmcli
 
-`bmcli` is the Bastion Management CLI. This repository currently contains the
-initial Go command skeleton with help and version commands.
+`bmcli` is the Bastion Management CLI. This repository currently contains a
+small Go command with help, version, and bastion listing commands.
 
 ## Architecture
 
@@ -18,9 +18,11 @@ flowchart TD
     run --> dispatch{Command}
     dispatch -->|help, -h, --help, no args| help[Print help text]
     dispatch -->|version, -v, --version| version[Print version metadata]
+    dispatch -->|list| list[List configured bastions]
     dispatch -->|unknown command| error[Print error and help]
     help --> stdout[stdout]
     version --> stdout
+    list --> stdout
     error --> stderr[stderr]
     run --> exit[Exit code]
     exit --> os[Operating system]
@@ -37,8 +39,47 @@ See [docs/architecture.md](docs/architecture.md) for more detail.
 ```sh
 go run ./cmd/bmcli --help
 go run ./cmd/bmcli help
+go run ./cmd/bmcli list
+go run ./cmd/bmcli list --json
 go run ./cmd/bmcli version
 go run ./cmd/bmcli version --json
+```
+
+By default, `list` reads `~/.config/bmcli/config.json`. Use `--config` to point
+at a specific config file:
+
+```sh
+go run ./cmd/bmcli --config ./config.json list
+```
+
+Expected config shape:
+
+```json
+{
+  "bastions": [
+    {
+      "name": "dev-us-east",
+      "environment": "dev",
+      "region": "us-east-1",
+      "hostname": "bastion.dev.example",
+      "port": 22
+    }
+  ]
+}
+```
+
+When no bastions are configured, `list` exits successfully and prints a setup
+suggestion. In JSON mode the output remains valid JSON:
+
+```json
+{
+  "bastions": [],
+  "count": 0,
+  "configSuggestion": {
+    "message": "No bastions configured.",
+    "configPath": "/home/user/.config/bmcli/config.json"
+  }
+}
 ```
 
 Build a local binary:
